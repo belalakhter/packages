@@ -1,5 +1,5 @@
 
-BINARY_NAME=kadrion
+BINARY_NAME=api_tester
 
 GO_CMD=go
 INSTALL_PATH=/usr/local/bin

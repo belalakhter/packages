@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -31,9 +30,7 @@ func RunSseTest(ctx context.Context, addr string, initialCount int64, PumpCount 
 	}()
 
 	for {
-
 		sig := <-Signal
-
 		switch sig {
 		case 1:
 			result.Failed++
@@ -49,25 +46,30 @@ func RunSseTest(ctx context.Context, addr string, initialCount int64, PumpCount 
 			utils.LogMessage(string(resp), utils.Log_Info)
 			break
 		}
-
 	}
 }
 
 func RunHttpTest(ctx context.Context, result core.Result, PumpCount int64, addr string, signal chan int, d int64, counter *atomic.Uint64) {
-	utils.WelComePrint(fmt.Sprintf("Addr Given %v", addr), fmt.Sprintf("Count Given %v", result.InitialCount), fmt.Sprintf("Duration Given %v", d), fmt.Sprintf("PumpCount %v", PumpCount))
+	utils.WelComePrint(
+		fmt.Sprintf("Addr Given %v", addr),
+		fmt.Sprintf("Count Given %v", result.InitialCount),
+		fmt.Sprintf("Duration Given %v", d),
+		fmt.Sprintf("PumpCount %v", PumpCount),
+	)
+
 	for {
-		for i := 0; i <= int(result.InitialCount); i++ {
+		for i := 0; i < int(result.InitialCount); i++ {
 			go func() {
-				var mu sync.Mutex
-				mu.Lock()
 				SseIoLoop(ctx, addr, signal, d, counter)
-				mu.Unlock()
 			}()
 		}
+
 		utils.LogMessage(fmt.Sprintf("Users Dispatched %v", result.InitialCount), 3)
+
 		if PumpCount == 0 {
 			break
 		}
+
 		PumpCount--
 		result.InitialCount = result.InitialCount * 2
 		time.Sleep(time.Second * 1)
@@ -77,14 +79,25 @@ func RunHttpTest(ctx context.Context, result core.Result, PumpCount int64, addr 
 func SseIoLoop(ctx context.Context, addr string, signal chan int, d int64, counter *atomic.Uint64) {
 	if d > 1 {
 		duration := time.Second * time.Duration(d)
-		req, err := http.NewRequest("GET", addr, nil)
+
+		connCtx, cancel := context.WithTimeout(ctx, duration+time.Second*2)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(connCtx, "GET", addr, nil)
 		if err != nil {
 			signal <- 1
 			counter.Add(1)
 			return
 		}
+
 		req.Header.Set("Accept", "text/event-stream")
-		client := &http.Client{}
+		req.Header.Set("Cache-Control", "no-cache")
+		req.Header.Set("Connection", "keep-alive")
+
+		client := &http.Client{
+			Timeout: duration + time.Second*2,
+		}
+
 		resp, err := client.Do(req)
 		if err != nil {
 			signal <- 1
@@ -92,32 +105,79 @@ func SseIoLoop(ctx context.Context, addr string, signal chan int, d int64, count
 			return
 		}
 		defer resp.Body.Close()
+
 		if resp.StatusCode != http.StatusOK {
 			signal <- 1
 			counter.Add(1)
 			return
 		}
-		scanner := bufio.NewScanner(resp.Body)
 
+		scanner := bufio.NewScanner(resp.Body)
 		timeout := time.After(duration)
+
+		dataReceived := false
+		lastDataTime := time.Now()
+
 		for {
 			select {
 			case <-timeout:
-				err := resp.Body.Close()
-				if err != nil {
-				}
+
 				signal <- 2
 				counter.Add(1)
 				return
-			default:
-				if err := scanner.Err(); err != nil {
+			case <-connCtx.Done():
+				if dataReceived {
+					signal <- 2
+				} else {
 					signal <- 1
-					counter.Add(1)
-					return
+				}
+				counter.Add(1)
+				return
+			default:
+
+				select {
+				case <-time.After(time.Millisecond * 500):
+					if time.Since(lastDataTime) > time.Second*5 {
+						signal <- 1
+						counter.Add(1)
+						return
+					}
+					continue
+				default:
+					if scanner.Scan() {
+
+						dataReceived = true
+						lastDataTime = time.Now()
+
+						line := scanner.Text()
+
+						if line == "" || line[:5] == "data:" || line[:6] == "event:" || line[:3] == "id:" {
+
+							continue
+						}
+					}
+
+					if err := scanner.Err(); err != nil {
+						signal <- 1
+						counter.Add(1)
+						return
+					}
+
+					if !scanner.Scan() && scanner.Err() == nil {
+						if dataReceived {
+							signal <- 2
+						} else {
+							signal <- 1
+						}
+						counter.Add(1)
+						return
+					}
 				}
 			}
 		}
 	} else {
 		utils.LogMessage("Timeout should be > 1 second for SSE", utils.Fatal_Error_Code)
+		signal <- 1
+		counter.Add(1)
 	}
 }
