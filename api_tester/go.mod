@@ -1,4 +1,4 @@
-module github.com/belalakhter/work_utils/api_tester
+module github.com/belalakhter/packages/api_tester
 
 go 1.23.2
 

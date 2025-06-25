@@ -1,5 +1,3 @@
-# Packages
-
 ### Api Load Tester
 Perform load testing for Streams connections like SSE, websocket, flv and hls.
 
