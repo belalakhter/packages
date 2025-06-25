@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/belalakhter/work_utils/tree/main/api_tester/internal/core"
-	"github.com/belalakhter/work_utils/tree/main/api_tester/utils"
+	"github.com/belalakhter/work_utils/api_tester/internal/core"
+	"github.com/belalakhter/work_utils/api_tester/utils"
 )
 
 func RunSseTest(ctx context.Context, addr string, initialCount int64, PumpCount int64, duration int64) {

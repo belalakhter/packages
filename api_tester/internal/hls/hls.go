@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/belalakhter/work_utils/tree/main/api_tester/internal/core"
-	"github.com/belalakhter/work_utils/tree/main/api_tester/utils"
+	"github.com/belalakhter/work_utils/api_tester/internal/core"
+	"github.com/belalakhter/work_utils/api_tester/utils"
 	"github.com/bluenviron/gohlslib"
 )
 

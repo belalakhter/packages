@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/belalakhter/work_utils/tree/main/api_tester/internal/flv"
-	"github.com/belalakhter/work_utils/tree/main/api_tester/internal/hls"
-	"github.com/belalakhter/work_utils/tree/main/api_tester/internal/sse"
-	"github.com/belalakhter/work_utils/tree/main/api_tester/internal/ws"
-	"github.com/belalakhter/work_utils/tree/main/api_tester/utils"
+	"github.com/belalakhter/work_utils/api_tester/internal/flv"
+	"github.com/belalakhter/work_utils/api_tester/internal/hls"
+	"github.com/belalakhter/work_utils/api_tester/internal/sse"
+	"github.com/belalakhter/work_utils/api_tester/internal/ws"
+	"github.com/belalakhter/work_utils/api_tester/utils"
 	"gopkg.in/yaml.v2"
 )
 
