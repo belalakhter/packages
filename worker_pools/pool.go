@@ -25,6 +25,7 @@ func NewPool(workerCount int, resultCallback func(...interface{}), errorCallback
 		TaskBuffer:     NewRingBuffer(10000),
 		ctx:            ctx,
 		cancel:         cancel,
+		scaleTicker:    time.NewTicker(2 * time.Second),
 	}
 
 	for i := 0; i < workerCount; i++ {
@@ -80,4 +81,5 @@ func (p *Pool) adjustWorkerCount() {
 
 func (p *Pool) Shutdown() {
 	p.cancel()
+	p.scaleTicker.Stop()
 }
