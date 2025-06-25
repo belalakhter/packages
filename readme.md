@@ -1,6 +1,7 @@
-# Work Utils
+# Packages
 
-- api tester
-For load testing websocket, hlv or flv streams and sse connections
-- worker pool
-Use in golang projects for better concurrent tasks management
+### Api Load Tester
+Perform load testing for Streams connections like SSE, websocket, flv and hls.
+
+### Worker Pool
+Golang module to use worker threads

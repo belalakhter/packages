@@ -1,15 +1,15 @@
-**Usage:**
-api_tester ws://localhost:8080/ws 10 20 4 ws
+## Usage
+api_tester config.yaml
 
-# arg1 = addr
-# arg2 = initial user count
-# arg3 = duration of each user
-# arg4 = no of times to double users
-# arg5 = connection type
+## Example config.yaml
+addr: "ws://localhost:8080/ws"
+initial_count: 2
+duration: 3
+pump_count: 4
+type: "ws"
 
 ## Install
 make install
-
 
 ## remove
 make remove
