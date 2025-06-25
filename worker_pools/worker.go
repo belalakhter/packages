@@ -1,6 +1,5 @@
 package pool
 
-type Task func(...interface{}) (interface{}, error)
 type Worker struct {
 	Id     int
 	Status chan bool
@@ -26,7 +25,7 @@ func (w *Worker) Run(pool *Pool) {
 	}
 }
 
-func (w *Worker) ExecuteTask(task Task) (result interface{}, err error) {
+func (w *Worker) ExecuteTask(task func(...interface{}) (interface{}, error)) (result interface{}, err error) {
 	return task()
 }
 

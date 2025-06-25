@@ -3,7 +3,7 @@ package pool
 import "sync"
 
 type RingBuffer struct {
-	data       []Task
+	data       []func(...interface{}) (interface{}, error)
 	size       int
 	start, end int
 	count      int
@@ -14,7 +14,7 @@ type RingBuffer struct {
 
 func NewRingBuffer(size int) *RingBuffer {
 	rb := &RingBuffer{
-		data: make([]Task, size),
+		data: make([]func(...interface{}) (interface{}, error), size),
 		size: size,
 	}
 	rb.notEmpty = sync.NewCond(&rb.lock)
@@ -22,7 +22,7 @@ func NewRingBuffer(size int) *RingBuffer {
 	return rb
 }
 
-func (rb *RingBuffer) Push(task Task) {
+func (rb *RingBuffer) Push(task func(...interface{}) (interface{}, error)) {
 	rb.lock.Lock()
 	defer rb.lock.Unlock()
 	for rb.count == rb.size {
@@ -34,7 +34,7 @@ func (rb *RingBuffer) Push(task Task) {
 	rb.notEmpty.Signal()
 }
 
-func (rb *RingBuffer) Pop() Task {
+func (rb *RingBuffer) Pop() func(...interface{}) (interface{}, error) {
 	rb.lock.Lock()
 	defer rb.lock.Unlock()
 	for rb.count == 0 {

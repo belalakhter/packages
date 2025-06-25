@@ -39,7 +39,7 @@ func NewPool(workerCount int, resultCallback func(...interface{}), errorCallback
 	return pool
 }
 
-func (p *Pool) AddTask(task Task) {
+func (p *Pool) AddTask(task func(...interface{}) (interface{}, error)) {
 	p.TaskBuffer.Push(task)
 }
 func (p *Pool) Dispatch() {
