@@ -7,6 +7,7 @@ type Worker struct {
 
 func (w *Worker) Run(pool *Pool) {
 	w.Status <- true
+
 	for {
 		select {
 		case <-pool.ctx.Done():

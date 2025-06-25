@@ -31,7 +31,7 @@ func NewPool(workerCount int, resultCallback func(...interface{}), errorCallback
 	for i := 0; i < workerCount; i++ {
 		worker := &Worker{
 			Id:     i,
-			Status: make(chan bool),
+			Status: make(chan bool, 1),
 		}
 		pool.Workers[i] = worker
 	}
@@ -43,7 +43,9 @@ func (p *Pool) AddTask(task func(...interface{}) (interface{}, error)) {
 	p.TaskBuffer.Push(task)
 }
 func (p *Pool) Dispatch() {
+
 	for _, worker := range p.Workers {
+
 		go worker.Run(p)
 	}
 	go func() {
@@ -66,7 +68,7 @@ func (p *Pool) adjustWorkerCount() {
 	if bufferUsage >= 0.8 {
 		newWorker := &Worker{
 			Id:     currentWorkers,
-			Status: make(chan bool),
+			Status: make(chan bool, 1),
 		}
 		p.Workers[currentWorkers] = newWorker
 

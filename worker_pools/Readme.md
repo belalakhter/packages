@@ -5,5 +5,6 @@
 - Ring buffer for task management
 
 ## Usage
-- import github.com/belalakhter/work_utils/tree/main/worker_pools
+- go get go get github.com/belalakhter/work_utils/worker_pools@v1.0.5
+- import "github.com/belalakhter/work_utils/worker_pools"
 - use pool.New(10,resultHandler,errorHandler) and pool.Dispatch()
