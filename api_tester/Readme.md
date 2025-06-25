@@ -12,6 +12,7 @@ type: "ws"
 
 
 ## Install
+git clone github.com/belalakhter/work_utils/tree/main/api_tester
 make install
 
 ## remove
