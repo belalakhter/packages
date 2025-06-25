@@ -1,4 +1,4 @@
-module github.com/bilalthdeveloper/kadrion
+module github.com/belalakhter/work_utils/tree/main/api_tester
 
 go 1.23.2
 
