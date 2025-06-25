@@ -2,104 +2,82 @@ package pool
 
 import (
 	"context"
-	"sync"
+	"fmt"
 	"time"
 )
 
-type Task func(...interface{}) (interface{}, error)
-
-type pool interface {
-	AddTask(t Task)
-
-	Wait()
-
-	Release()
-
-	Running() int
-
-	GetWorkerCount() int
-
-	GetTaskQueueSize() int
-}
-
 type Pool struct {
-	workers        []*Worker
-	maxWorkers     int
-	WorkerStack    *WorkerStack
-	taskQueue      chan Task
-	taskQueueSize  int
-	retryCount     int
-	timeout        time.Duration
-	resultCallback func(interface{})
-	errorCallback  func(error)
-	adjustInterval time.Duration
+	Workers        map[int]*Worker
+	ResultCallback func(...interface{})
+	ErrorCallback  func(error)
+	TaskBuffer     *RingBuffer
 	ctx            context.Context
 	cancel         context.CancelFunc
-	lock           sync.Locker
-	cond           *sync.Cond
+	scaleTicker    *time.Ticker
 }
 
-func NewPool(maxWorkers int, opts ...Option) *Pool {
+func NewPool(workerCount int, resultCallback func(...interface{}), errorCallback func(error)) *Pool {
 	ctx, cancel := context.WithCancel(context.Background())
 	pool := &Pool{
-		maxWorkers: maxWorkers,
-		ctx:        ctx,
-		cancel:     cancel,
+		Workers:        make(map[int]*Worker),
+		ResultCallback: resultCallback,
+		ErrorCallback:  errorCallback,
+		TaskBuffer:     NewRingBuffer(10000),
+		ctx:            ctx,
+		cancel:         cancel,
 	}
-	for _, opt := range opts {
-		opt(pool)
+
+	for i := 0; i < workerCount; i++ {
+		worker := &Worker{
+			Id:     i,
+			Status: make(chan bool),
+		}
+		pool.Workers[i] = worker
 	}
-	pool.taskQueue = make(chan Task, pool.taskQueueSize)
-	pool.lock = new(sync.Mutex)
-	pool.cond = sync.NewCond(pool.lock)
-	go pool.dispatch()
-	go pool.adjust()
 
 	return pool
 }
 
-// Manage Active Worker and Non Active Worker gracefully and scale them efficietilly
-func (p *Pool) adjust() {
-	ticker := time.NewTicker(p.adjustInterval)
-	defer ticker.Stop()
+func (p *Pool) AddTask(task Task) {
+	p.TaskBuffer.Push(task)
+}
+func (p *Pool) Dispatch() {
+	for _, worker := range p.Workers {
+		go worker.Run(p)
+	}
 	go func() {
 		for {
 			select {
 			case <-p.ctx.Done():
 				return
-			case <-ticker.C:
-				var activeWorkers int
-				for _, worker := range p.workers {
-					if p.WorkerStack.workers[worker] {
-						activeWorkers++
-					}
-				}
-				if activeWorkers < p.maxWorkers {
-					go p.scaleDown()
-				} else if activeWorkers < len(p.taskQueue) {
-					p.scaleUp()
-				}
+			case <-p.scaleTicker.C:
+				p.adjustWorkerCount()
 			}
 		}
 	}()
-}
 
-func (p *Pool) scaleDown() {
-	for i := len(p.workers) - 1; i >= 0; i-- {
-		worker := p.workers[i]
-		if p.WorkerStack.workers[worker] == false {
-			p.workers = append(p.workers[:i], p.workers[i+1:]...)
+}
+func (p *Pool) adjustWorkerCount() {
+
+	bufferUsage := p.TaskBuffer.Usage()
+	currentWorkers := len(p.Workers)
+
+	if bufferUsage >= 0.8 {
+		newWorker := &Worker{
+			Id:     currentWorkers,
+			Status: make(chan bool),
 		}
+		p.Workers[currentWorkers] = newWorker
+
+		go newWorker.Run(p)
+
+		LogMessage(fmt.Sprintf("Scaled up: %d now %s", currentWorkers+1, "workers"), 3)
+	} else if bufferUsage < 0.25 {
+		p.Workers[0].Status <- false
+		LogMessage(fmt.Sprintf("Scaled Down: %d now %s", currentWorkers+1, "workers"), 3)
 	}
 }
 
-func (p *Pool) scaleUp() {
-
-}
-func (p *Pool) dispatch() {
-
-}
-
-func (p *Pool) Release() {
-
+func (p *Pool) Shutdown() {
+	p.cancel()
 }
