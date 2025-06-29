@@ -1,5 +1,5 @@
 ### Api Load Tester
-Perform load testing for Streams connections like SSE, websocket, flv and hls.
+Perform load testing for stream connections like sse, websocket, flv and hls.
 
 ### Worker Pool
 Golang module to use worker threads
