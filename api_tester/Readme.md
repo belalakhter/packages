@@ -13,7 +13,8 @@ type: "ws"
 
 ## Install
 git clone github.com/belalakhter/packages/tree/main/api_tester <br>
-make install
+
+then make install
 
 ## remove
 make remove
